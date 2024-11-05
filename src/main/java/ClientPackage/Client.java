@@ -9,32 +9,29 @@ import ProtocolClasses.ServerMessages.ResultMessage;
 import java.io.*;
 import java.net.Socket;
 import java.util.Scanner;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class Client {
-
     private Socket socket;
     private ObjectOutputStream out;
     private ObjectInputStream in;
     private String nickName;
     private boolean isConnected;
+    private BlockingQueue<ResultMessage> resultQueue; 
 
     public Client(String serverAddress, int port) {
         try {
             this.socket = new Socket(serverAddress, port);
+            this.out = new ObjectOutputStream(socket.getOutputStream());
+            this.in = new ObjectInputStream(socket.getInputStream());
+            this.isConnected = false;
+            this.resultQueue = new LinkedBlockingQueue<>(); 
         } catch (IOException e) {
             System.out.println("Error connecting to the server: " + e.getMessage());
             e.printStackTrace();
         }
-        try {
-            this.out = new ObjectOutputStream(socket.getOutputStream());
-            this.in = new ObjectInputStream(socket.getInputStream());
-            this.isConnected = false;
-        } catch (IOException e) {
-            System.out.println("Error getting streams: " + e.getMessage());
-            e.printStackTrace();
-        }
     }
-
 
     public void start() {
         if (!register()) {
@@ -42,8 +39,8 @@ public class Client {
             return;
         }
 
-        new Thread(new IncomingMessageHandler()).start();
-        new Thread(new OutgoingMessageHandler()).start();
+        new Thread(new IncomingMessageHandler()).start(); 
+        new Thread(new OutgoingMessageHandler()).start(); 
     }
 
     private boolean register() {
@@ -75,30 +72,18 @@ public class Client {
         @Override
         public void run() {
             while (socket.isConnected()) {
-                AbstractServerMessage serverMessage = null;
                 try {
-                    Object obj = in.readObject();
-                    serverMessage = (AbstractServerMessage) (obj);
-                } catch (IOException e) {
-                    System.err.println("Can't read object!");
-                    e.printStackTrace();
-                    continue;
-                } catch (ClassNotFoundException e) {
-                    System.err.println("Unknown object is received!");
-                    e.printStackTrace();
-                    continue;
-                }
-
-                if (serverMessage instanceof ResultMessage) {
-                    ResultMessage result = (ResultMessage) serverMessage;
-                    if (result.getContent().equals(String.valueOf(Protocol.SENDING_MESSAGE_FAILURE))) {
-                        System.out.println("Message sending error.");
+                    AbstractServerMessage serverMessage = (AbstractServerMessage) in.readObject();
+                    if (serverMessage instanceof ResultMessage) {
+                        resultQueue.offer((ResultMessage) serverMessage);
+                    } else {
+                        System.out.println(serverMessage.getContent());
                     }
-                } else {
-                    System.out.println(serverMessage.getContent());
+                } catch (IOException | ClassNotFoundException e) {
+                    System.err.println("Error reading object!");
+                    e.printStackTrace();
                 }
             }
-
         }
     }
 
@@ -113,32 +98,16 @@ public class Client {
 
                 ChatClientMessage chatMessage = new ChatClientMessage(messageText, nickName);
                 try {
-                    out.writeObject(chatMessage);
+                    out.writeObject(chatMessage); 
+
+                    ResultMessage result = resultQueue.take();
+                    if (!result.getContent().equals(String.valueOf(Protocol.SENDING_MESSAGE_SUCCESS))) {
+                        System.out.println("Message sending error.");
+                    }
                 } catch (IOException e) {
                     System.err.println("Error sending message!");
-                    continue;
-                }
-
-                ResultMessage result = null;
-                try {
-                    Object obj = in.readObject();
-                    result = (ResultMessage) (obj);
-                } catch (IOException e) {
-                    System.err.println("Error receiving message!");
-                    System.err.println("Connected: " + socket.isConnected());
-                    continue;
-                } catch (ClassNotFoundException e) {
-                    System.err.println("Unknown object received!");
-                    System.err.println("Connected: " + socket.isConnected());
-                    continue;
-                }
-
-                if (result == null) {
-                    continue;
-                }
-
-                if (!result.getContent().equals(String.valueOf(Protocol.SENDING_MESSAGE_SUCCESS))) {
-                    System.out.println("Message sending error.");
+                } catch (InterruptedException e) {
+                    System.err.println("Error waiting for result!");
                 }
             }
         }
