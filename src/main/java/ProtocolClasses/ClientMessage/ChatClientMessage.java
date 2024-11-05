@@ -1,4 +1,4 @@
-package ClientMessage;
+package ProtocolClasses.ClientMessage;
 
 public class ChatClientMessage extends AbstractClientMessage {
     private String messageText;

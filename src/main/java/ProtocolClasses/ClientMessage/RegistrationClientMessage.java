@@ -1,4 +1,4 @@
-package ClientMessage;
+package ProtocolClasses.ClientMessage;
 
 public class RegistrationClientMessage extends AbstractClientMessage {
     private String nickName;

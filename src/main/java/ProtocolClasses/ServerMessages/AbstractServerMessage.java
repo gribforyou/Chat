@@ -1,4 +1,4 @@
-package ServerMessages;
+package ProtocolClasses.ServerMessages;
 
 import java.io.Serializable;
 

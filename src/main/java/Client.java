@@ -1,7 +1,8 @@
-import ClientMessage.ChatClientMessage;
-import ClientMessage.RegistrationClientMessage;
-import ServerMessages.AbstractServerMessage;
-import ServerMessages.ResultMessage;
+import ProtocolClasses.ClientMessage.ChatClientMessage;
+import ProtocolClasses.ClientMessage.RegistrationClientMessage;
+import ProtocolClasses.Protocol;
+import ProtocolClasses.ServerMessages.AbstractServerMessage;
+import ProtocolClasses.ServerMessages.ResultMessage;
 
 import java.io.*;
 import java.net.Socket;

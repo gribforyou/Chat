@@ -1,3 +1,4 @@
+package ProtocolClasses;
 
 public class Protocol {
     public static final int PORT = 8071;

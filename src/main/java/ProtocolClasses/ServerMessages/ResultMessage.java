@@ -1,4 +1,4 @@
-package ServerMessages;
+package ProtocolClasses.ServerMessages;
 
 public class ResultMessage extends AbstractServerMessage {
     private int resultCode;
