@@ -11,6 +11,7 @@ import java.net.Socket;
 import java.util.Scanner;
 
 public class Client {
+	
     private Socket socket;
     private ObjectOutputStream out;
     private ObjectInputStream in;
@@ -19,14 +20,21 @@ public class Client {
 
     public Client(String serverAddress, int port) {
         try {
-            this.socket = new Socket(serverAddress, port);
+            this.socket = new Socket(serverAddress, port);}
+        catch (IOException e) {
+            System.out.println("1Error connecting to the server: " + e.getMessage());
+            e.printStackTrace();  
+        }
+        try {
             this.out = new ObjectOutputStream(socket.getOutputStream());
             this.in = new ObjectInputStream(socket.getInputStream());
             this.isConnected = false;
         } catch (IOException e) {
-            System.out.println("Error connecting to the server.");
+            System.out.println("2Error connecting to the server: " + e.getMessage());
+            e.printStackTrace(); 
         }
     }
+
 
     public void start() {
         if (!register()) {
