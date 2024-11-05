@@ -1,6 +1,7 @@
 package ServerPackage;
 
 import ProtocolClasses.ClientMessage.AbstractClientMessage;
+import ProtocolClasses.ClientMessage.ChatClientMessage;
 import ProtocolClasses.ServerMessages.ChatMessage;
 import ProtocolClasses.ServerMessages.ResultMessage;
 import ProtocolClasses.Protocol;
@@ -22,7 +23,7 @@ public class ChatServer implements Runnable {
     public void run() {
         try {
             server = new ServerSocket(Protocol.PORT);
-            System.err.println("Server started at " + server.getLocalSocketAddress());
+            System.err.println("Server started at " + server.getInetAddress());
         } catch (IOException e) {
             System.err.println("Could not listen on port: " + Protocol.PORT);
             System.exit(1);
@@ -32,6 +33,7 @@ public class ChatServer implements Runnable {
         while (true) {
             try{
                 Socket client = server.accept();
+                System.err.println("New client connected: " + client.getInetAddress());
                 new ClientHandler(client).start();
             }
             catch (IOException e) {
@@ -65,13 +67,18 @@ public class ChatServer implements Runnable {
             ResultMessage resMes;
             while (sock.isConnected()) {
                 try {
-                    AbstractClientMessage mes = (AbstractClientMessage) (in.readObject());
+                    Object msg = in.readObject();
+                    ChatClientMessage mes = (ChatClientMessage)msg;
                     sendResult(Protocol.SENDING_MESSAGE_SUCCESS);
                     ChatMessage chatMessage = new ChatMessage(mes.getContent(), nick, GregorianCalendar.getInstance().getTime());
                     for (ObjectOutputStream o : clients) {
                         o.writeObject(chatMessage);
                     }
-                } catch (Exception e) {
+                } catch (IOException e) {
+                    System.err.println("Can't read object!");
+                    sendResult(Protocol.SENDING_MESSAGE_FAILURE);
+                }catch (ClassNotFoundException e) {
+                    System.err.println("Unknown object is received!");
                     sendResult(Protocol.SENDING_MESSAGE_FAILURE);
                 }
             }
@@ -90,14 +97,15 @@ public class ChatServer implements Runnable {
             AbstractClientMessage clientMessage = null;
             while (!isRegistered && sock.isConnected()) {
                 try {
-                    clientMessage = (AbstractClientMessage) (in.readObject());
+                    Object msg = in.readObject();
+                    clientMessage = (AbstractClientMessage)(msg);
                     nick = clientMessage.getContent();
                     boolean isOriginalNickname = !activeNicks.contains(nick);
                     if (isOriginalNickname) {
                         clients.add(out);
                         activeNicks.add(nick);
                         isRegistered = true;
-                        sendResult(Protocol.SENDING_MESSAGE_SUCCESS);
+                        sendResult(Protocol.CONNECTION_SUCCESS);
                     }
                 }
                 catch (ClassNotFoundException e) {
