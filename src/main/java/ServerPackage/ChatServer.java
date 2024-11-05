@@ -1,4 +1,4 @@
-package Server;
+package ServerPackage;
 
 import ProtocolClasses.ClientMessage.AbstractClientMessage;
 import ProtocolClasses.ServerMessages.ChatMessage;
@@ -22,7 +22,7 @@ public class ChatServer implements Runnable {
     public void run() {
         try {
             server = new ServerSocket(Protocol.PORT);
-            System.err.println("Server started");
+            System.err.println("Server started at " + server.getLocalSocketAddress());
         } catch (IOException e) {
             System.err.println("Could not listen on port: " + Protocol.PORT);
             System.exit(1);

@@ -1,3 +1,5 @@
+package ClientPackage;
+
 import ProtocolClasses.ClientMessage.ChatClientMessage;
 import ProtocolClasses.ClientMessage.RegistrationClientMessage;
 import ProtocolClasses.Protocol;
