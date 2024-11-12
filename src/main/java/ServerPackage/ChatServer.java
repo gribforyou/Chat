@@ -42,6 +42,8 @@ public class ChatServer implements Runnable {
         }
     }
 
+
+    
     private static class ClientHandler extends Thread{
         private Socket sock;
         private ObjectInputStream in;
@@ -62,9 +64,23 @@ public class ChatServer implements Runnable {
             }
         }
 
+        
+        private static synchronized void SENDER(String message) {
+            ChatMessage chatMessage = new ChatMessage(message, "Server", new Date());
+            for (ObjectOutputStream clientOut : clients) {
+                try {
+                    clientOut.writeObject(chatMessage);
+                } catch (IOException e) {
+                    System.err.println("Error sending broadcast message!");
+                }
+            }
+        }
         public void run() {
             register();
             ResultMessage resMes;
+            if (isRegistered) { 
+                SENDER(nick + " has joined the chat.");
+            }
             while (sock.isConnected()) {
                 try {
                     Object msg = in.readObject();
@@ -82,8 +98,24 @@ public class ChatServer implements Runnable {
                     sendResult(Protocol.SENDING_MESSAGE_FAILURE);
                 }
             }
+            
         }
 
+    /*    private void disconnectClient() {
+            try {
+                synchronized (clients) {
+                    clients.remove(out);
+                }
+                activeNicks.remove(nick);
+                
+                SENDER(nick + " has left the chat.");
+                
+                sock.close();
+            } catch (IOException e) {
+                System.err.println("Error closing client socket!");
+            }
+        }*/
+        
         private void sendResult(int code) {
             try {
                 out.writeObject(new ResultMessage(code));
@@ -106,6 +138,9 @@ public class ChatServer implements Runnable {
                         activeNicks.add(nick);
                         isRegistered = true;
                         sendResult(Protocol.CONNECTION_SUCCESS);
+                    }
+                    else {
+                        sendResult(Protocol.CONNECTION_FAILURE);
                     }
                 }
                 catch (ClassNotFoundException e) {

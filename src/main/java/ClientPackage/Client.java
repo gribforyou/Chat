@@ -18,7 +18,7 @@ public class Client {
     private ObjectInputStream in;
     private String nickName;
     private boolean isConnected;
-    private BlockingQueue<ResultMessage> resultQueue; 
+    private BlockingQueue<ResultMessage> resultQueue;
 
     public Client(String serverAddress, int port) {
         try {
@@ -26,7 +26,7 @@ public class Client {
             this.out = new ObjectOutputStream(socket.getOutputStream());
             this.in = new ObjectInputStream(socket.getInputStream());
             this.isConnected = false;
-            this.resultQueue = new LinkedBlockingQueue<>(); 
+            this.resultQueue = new LinkedBlockingQueue<>();
         } catch (IOException e) {
             System.out.println("Error connecting to the server: " + e.getMessage());
             e.printStackTrace();
@@ -39,8 +39,8 @@ public class Client {
             return;
         }
 
-        new Thread(new IncomingMessageHandler()).start(); 
-        new Thread(new OutgoingMessageHandler()).start(); 
+        new Thread(new IncomingMessageHandler()).start();
+        new Thread(new OutgoingMessageHandler()).start();
     }
 
     private boolean register() {
@@ -55,9 +55,10 @@ public class Client {
 
                 if (response.getContent().equals(String.valueOf(Protocol.CONNECTION_SUCCESS))) {
                     System.out.println("You have successfully connected to the chat!");
+                    System.out.println("Enter message:");
                     isConnected = true;
-                } else {
-                    System.out.println("This nickname is already taken, please try another.");
+                } else if (response.getContent().equals(String.valueOf(Protocol.CONNECTION_FAILURE))) {
+                    System.out.println("This nickname is already taken. Please try another one.");
                 }
 
             } catch (IOException | ClassNotFoundException e) {
@@ -74,10 +75,12 @@ public class Client {
             while (socket.isConnected()) {
                 try {
                     AbstractServerMessage serverMessage = (AbstractServerMessage) in.readObject();
+
                     if (serverMessage instanceof ResultMessage) {
                         resultQueue.offer((ResultMessage) serverMessage);
                     } else {
-                        System.out.println(serverMessage.getContent());
+                        // Перезапись текущей строки для корректного вывода сообщения
+                        System.out.print("\r" + serverMessage.getContent() + "\nEnter message: ");
                     }
                 } catch (IOException | ClassNotFoundException e) {
                     System.err.println("Error reading object!");
@@ -93,12 +96,12 @@ public class Client {
         @Override
         public void run() {
             while (socket.isConnected()) {
-                System.out.print("Enter message: ");
+               // System.out.print("\rEnter message: "); // Отображение приглашения на ввод на новой строке
                 String messageText = scanner.nextLine();
 
                 ChatClientMessage chatMessage = new ChatClientMessage(messageText, nickName);
                 try {
-                    out.writeObject(chatMessage); 
+                    out.writeObject(chatMessage);
 
                     ResultMessage result = resultQueue.take();
                     if (!result.getContent().equals(String.valueOf(Protocol.SENDING_MESSAGE_SUCCESS))) {
@@ -109,6 +112,8 @@ public class Client {
                 } catch (InterruptedException e) {
                     System.err.println("Error waiting for result!");
                 }
+                // Приглашение на ввод сообщения после отправки и подтверждения
+               // System.out.print("Enter message: ");
             }
         }
     }
