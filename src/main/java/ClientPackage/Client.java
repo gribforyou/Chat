@@ -33,14 +33,15 @@ public class Client {
         }
     }
 
-    public void start() {
+    public boolean start() {
         if (!register()) {
             System.out.println("Registration failed. Please try again.");
-            return;
+            return false;
         }
 
         new Thread(new IncomingMessageHandler()).start();
         new Thread(new OutgoingMessageHandler()).start();
+        return true;
     }
 
     private boolean register() {
@@ -55,7 +56,6 @@ public class Client {
 
                 if (response.getContent().equals(String.valueOf(Protocol.CONNECTION_SUCCESS))) {
                     System.out.println("You have successfully connected to the chat!");
-                    System.out.println("Enter message:");
                     isConnected = true;
                 } else if (response.getContent().equals(String.valueOf(Protocol.CONNECTION_FAILURE))) {
                     System.out.println("This nickname is already taken. Please try another one.");
@@ -96,7 +96,6 @@ public class Client {
         @Override
         public void run() {
             while (socket.isConnected()) {
-               // System.out.print("\rEnter message: "); // Отображение приглашения на ввод на новой строке
                 String messageText = scanner.nextLine();
 
                 ChatClientMessage chatMessage = new ChatClientMessage(messageText, nickName);
@@ -112,8 +111,7 @@ public class Client {
                 } catch (InterruptedException e) {
                     System.err.println("Error waiting for result!");
                 }
-                // Приглашение на ввод сообщения после отправки и подтверждения
-               // System.out.print("Enter message: ");
+
             }
         }
     }

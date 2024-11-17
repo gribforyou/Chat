@@ -16,8 +16,13 @@ public class ClientMain {
             }
         }
 
-        System.out.println("Connecting to server at " + serverIp + ":" + port);
         Client client = new Client(serverIp, port);
-        client.start();
+        boolean isConnected = client.start();
+
+        if (isConnected) {
+            System.out.println("Connecting to server at " + serverIp + " : " + port);
+        } else {
+            System.err.println("Failed to connect to server at " + serverIp + " : " + port);
+        }
     }
 }
