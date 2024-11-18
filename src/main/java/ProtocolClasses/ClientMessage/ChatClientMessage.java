@@ -10,7 +10,7 @@ public class ChatClientMessage extends AbstractClientMessage {
     }
 
     @Override
-    public String getContent(){
-        return nickName + " ["+ messageText + "]";
+    public String getContent() {
+        return messageText;
     }
 }

@@ -5,18 +5,19 @@ import ProtocolClasses.ClientMessage.ChatClientMessage;
 import ProtocolClasses.ServerMessages.ChatMessage;
 import ProtocolClasses.ServerMessages.ResultMessage;
 import ProtocolClasses.Protocol;
+
 import java.io.*;
 import java.net.Socket;
 import java.util.*;
 import java.net.ServerSocket;
 
 public class ChatServer implements Runnable {
-    private static List<ObjectOutputStream> clients;
+    private static List<ClientHandler> clientHandlers;
     private static Set<String> activeNicks;
     private static ServerSocket server;
 
     public ChatServer() {
-        clients = new ArrayList<ObjectOutputStream>();
+        clientHandlers = new ArrayList<ClientHandler>();
         activeNicks = new HashSet<String>();
     }
 
@@ -31,97 +32,100 @@ public class ChatServer implements Runnable {
 
 
         while (true) {
-            try{
+            try {
                 Socket client = server.accept();
                 System.err.println("New client connected: " + client.getInetAddress());
-                new ClientHandler(client).start();
-            }
-            catch (IOException e) {
+                ClientHandler handler = new ClientHandler(client);
+                clientHandlers.add(handler);
+                handler.start();
+            } catch (IOException e) {
                 System.err.println("Accept failed!");
             }
         }
     }
 
-
-    
-    private static class ClientHandler extends Thread{
+    private static class ClientHandler extends Thread {
         private Socket sock;
         private ObjectInputStream in;
         private ObjectOutputStream out;
         private String nick;
+        boolean isRunning = true;
         private boolean isRegistered;
 
         public ClientHandler(Socket sock) throws IOException {
             this.sock = sock;
             this.isRegistered = false;
-            try{
+            try {
                 in = new ObjectInputStream(sock.getInputStream());
                 out = new ObjectOutputStream(sock.getOutputStream());
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 System.err.println("Could not open input and output streams!");
                 throw new IOException("Can't open streams!");
             }
         }
 
-        
-        private static synchronized void SENDER(String message) {
-            ChatMessage chatMessage = new ChatMessage(message, "Server", new Date());
-            for (ObjectOutputStream clientOut : clients) {
-                try {
-                    clientOut.writeObject(chatMessage);
-                } catch (IOException e) {
-                    System.err.println("Error sending broadcast message!");
-                }
-            }
-        }
         public void run() {
             register();
-            ResultMessage resMes;
-            if (isRegistered) { 
-                SENDER(nick + " has joined the chat.");
+            if (isRegistered) {
+                ChatMessage message = new ChatMessage(nick + " has joined the chat.", "Server", GregorianCalendar.getInstance().getTime());
+                sendChatMessage(message);
             }
-            while (sock.isConnected()) {
+            while (isRunning) {
                 try {
                     Object msg = in.readObject();
-                    ChatClientMessage mes = (ChatClientMessage)msg;
+                    ChatClientMessage mes = (ChatClientMessage) msg;
                     sendResult(Protocol.SENDING_MESSAGE_SUCCESS);
                     ChatMessage chatMessage = new ChatMessage(mes.getContent(), nick, GregorianCalendar.getInstance().getTime());
-                    for (ObjectOutputStream o : clients) {
-                        o.writeObject(chatMessage);
-                    }
+                    sendChatMessage(chatMessage);
                 } catch (IOException e) {
-                    System.err.println("Can't read object!");
-                    sendResult(Protocol.SENDING_MESSAGE_FAILURE);
-                }catch (ClassNotFoundException e) {
+                    disconnectClients(List.of(this));
+                } catch (ClassNotFoundException e) {
                     System.err.println("Unknown object is received!");
                     sendResult(Protocol.SENDING_MESSAGE_FAILURE);
                 }
             }
-            
+
         }
 
-    /*    private void disconnectClient() {
-            try {
-                synchronized (clients) {
-                    clients.remove(out);
-                }
-                activeNicks.remove(nick);
-                
-                SENDER(nick + " has left the chat.");
-                
-                sock.close();
-            } catch (IOException e) {
-                System.err.println("Error closing client socket!");
-            }
-        }*/
-        
         private void sendResult(int code) {
             try {
                 out.writeObject(new ResultMessage(code));
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 System.err.println("Error sending result!");
+                disconnectClients(List.of(this));
+            }
+        }
+
+        private void sendChatMessage(ChatMessage msg) {
+            List<ClientHandler> toRemove = new ArrayList<ClientHandler>();
+            synchronized (clientHandlers) {
+                for (ClientHandler handler : clientHandlers) {
+                    try {
+                        handler.out.writeObject(msg);
+                    } catch (IOException e) {
+                        toRemove.add(handler);
+                    }
+                }
+            }
+            disconnectClients(toRemove);
+        }
+
+        private void disconnectClients(Collection<ClientHandler> toRemove) {
+            for (ClientHandler handler : toRemove) {
+                try {
+                    handler.isRunning = false;
+                    handler.sock.close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                synchronized (activeNicks) {
+                    activeNicks.remove(handler.nick);
+                }
+                synchronized (clientHandlers) {
+                    clientHandlers.remove(handler);
+                }
+                ChatMessage message = new ChatMessage(handler.nick + " is left", "Server", GregorianCalendar.getInstance().getTime());
+                sendChatMessage(message);
             }
         }
 
@@ -130,26 +134,23 @@ public class ChatServer implements Runnable {
             while (!isRegistered && sock.isConnected()) {
                 try {
                     Object msg = in.readObject();
-                    clientMessage = (AbstractClientMessage)(msg);
+                    clientMessage = (AbstractClientMessage) (msg);
                     nick = clientMessage.getContent();
                     boolean isOriginalNickname = !activeNicks.contains(nick);
                     if (isOriginalNickname) {
-                        clients.add(out);
                         activeNicks.add(nick);
                         isRegistered = true;
                         sendResult(Protocol.CONNECTION_SUCCESS);
-                    }
-                    else {
+                    } else {
                         sendResult(Protocol.CONNECTION_FAILURE);
                     }
-                }
-                catch (ClassNotFoundException e) {
+                } catch (ClassNotFoundException e) {
                     sendResult(Protocol.SENDING_MESSAGE_FAILURE);
                     System.err.println("Read unknown object!");
-                }
-                catch (IOException e) {
+                } catch (IOException e) {
                     sendResult(Protocol.SENDING_MESSAGE_FAILURE);
                     System.err.println("Error reading object!");
+                    disconnectClients(List.of(this));
                 }
             }
         }

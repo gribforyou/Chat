@@ -6,11 +6,11 @@ public class ClientMain {
         int port = 8071;
 
         if (args.length >= 1) {
-            serverIp = args[0];  
+            serverIp = args[0];
         }
         if (args.length >= 2) {
             try {
-                port = Integer.parseInt(args[1]);  
+                port = Integer.parseInt(args[1]);
             } catch (NumberFormatException e) {
                 System.err.println("Invalid port number. Using default port 8071.");
             }

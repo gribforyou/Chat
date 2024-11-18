@@ -29,7 +29,7 @@ public class Client {
             this.resultQueue = new LinkedBlockingQueue<>();
         } catch (IOException e) {
             System.out.println("Error connecting to the server: " + e.getMessage());
-            e.printStackTrace();
+            System.exit(1);
         }
     }
 
@@ -72,19 +72,23 @@ public class Client {
     private class IncomingMessageHandler implements Runnable {
         @Override
         public void run() {
-            while (socket.isConnected()) {
+            while (true) {
                 try {
                     AbstractServerMessage serverMessage = (AbstractServerMessage) in.readObject();
 
                     if (serverMessage instanceof ResultMessage) {
                         resultQueue.offer((ResultMessage) serverMessage);
                     } else {
-                        // Перезапись текущей строки для корректного вывода сообщения
                         System.out.print("\r" + serverMessage.getContent() + "\nEnter message: ");
                     }
                 } catch (IOException | ClassNotFoundException e) {
-                    System.err.println("Error reading object!");
-                    e.printStackTrace();
+                    System.err.println("Error reading object! Disconnet Server!");
+                    try {
+                        socket.close();
+                    } catch (IOException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                    System.exit(1);
                 }
             }
         }
@@ -95,7 +99,7 @@ public class Client {
 
         @Override
         public void run() {
-            while (socket.isConnected()) {
+            while (true) {
                 String messageText = scanner.nextLine();
 
                 ChatClientMessage chatMessage = new ChatClientMessage(messageText, nickName);
@@ -107,9 +111,19 @@ public class Client {
                         System.out.println("Message sending error.");
                     }
                 } catch (IOException e) {
-                    System.err.println("Error sending message!");
+                    System.err.println("Error sending message! Disconnect Server!");
+                    try {
+                        socket.close();
+                    } catch (IOException ex) {
+                    }
+                    System.exit(1);
                 } catch (InterruptedException e) {
-                    System.err.println("Error waiting for result!");
+                    System.err.println("Error waiting for result! Disconnect Server!");
+                    try {
+                        socket.close();
+                    } catch (IOException ex) {
+                    }
+                    System.exit(1);
                 }
 
             }
