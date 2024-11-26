@@ -126,6 +126,7 @@ public class ChatServer implements Runnable {
                 }
                 ChatMessage message = new ChatMessage(handler.nick + " is left", "Server", GregorianCalendar.getInstance().getTime());
                 sendChatMessage(message);
+                System.err.println("Client disconnected: " + handler.sock.getInetAddress());
             }
         }
 
@@ -156,5 +157,3 @@ public class ChatServer implements Runnable {
         }
     }
 }
-
-
