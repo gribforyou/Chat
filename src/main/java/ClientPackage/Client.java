@@ -79,7 +79,8 @@ public class Client {
              // ClientInterface clientInterface = new ClientHandler(); // создание реализации ClientInterface
                 //boolean success = server.registerClient(nickName, clientInterface);
                 
-                
+                ClientInterface clientInterface = new ClientHandler();  // Создание реализации ClientInterface
+
                 if (server.registerClient(nickName, clientInterface)) {
                     System.out.println("You have successfully connected to the chat!");
                     isConnected = true;
