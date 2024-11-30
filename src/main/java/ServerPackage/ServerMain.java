@@ -21,8 +21,6 @@ public class ServerMain {
 
         registry.bind(UNIQUE_BINDING_NAME, stub);
 
-        // Явный вызов start для потока
-        Thread serverThread = new Thread(chatServer);
-        serverThread.start(); // [1] ДОРАБОТАНО
+        new Thread(chatServer).start();
     }
 }
