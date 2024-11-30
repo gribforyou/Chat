@@ -5,6 +5,10 @@ import ProtocolClasses.ClientMessage.RegistrationClientMessage;
 import ProtocolClasses.Protocol;
 import ProtocolClasses.ServerMessages.AbstractServerMessage;
 import ProtocolClasses.ServerMessages.ResultMessage;
+import ProtocolClasses.ClientInterface;  // Проверьте, что путь к классу правильный
+import ServerPackage.ChatServer;  // Импортируем класс, если он существует в пакете ServerPackage
+
+
 
 import java.io.*;
 import java.net.Socket;
@@ -12,23 +16,39 @@ import java.util.Scanner;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+
+import ProtocolClasses.ServerInterface;  // Импорт ServerInterface
+import ServerPackage.ServerMain; // Импорт ServerMain
+import java.rmi.NotBoundException;  // Импортируем NotBoundException
+
+
 public class Client {
-    private Socket socket;
+   /* private Socket socket;
     private ObjectOutputStream out;
-    private ObjectInputStream in;
+    private ObjectInputStream in;*/
+    private ServerInterface server; // ссылка на сервер
+
     private String nickName;
     private boolean isConnected;
     private BlockingQueue<ResultMessage> resultQueue;
 
-    public Client(String serverAddress, int port) {
+    public Client(String serverAddress, int port) throws NotBoundException {
         try {
-            this.socket = new Socket(serverAddress, port);
+          /*  this.socket = new Socket(serverAddress, port);
             this.out = new ObjectOutputStream(socket.getOutputStream());
             this.in = new ObjectInputStream(socket.getInputStream());
+            this.resultQueue = new LinkedBlockingQueue<>();*/
+        	
+        	  // Получаем доступ к реестру удаленных объектов
+            Registry registry = LocateRegistry.getRegistry(serverAddress, port);
+            // Ищем сервер по уникальному имени
+            server = (ServerInterface) registry.lookup(ServerMain.UNIQUE_BINDING_NAME);
             this.isConnected = false;
-            this.resultQueue = new LinkedBlockingQueue<>();
-        } catch (IOException e) {
-            System.out.println("Error connecting to the server: " + e.getMessage());
+        }  catch (IOException e) {
+            System.out.println("Error connecting to the server via RMI: " + e.getMessage());
             System.exit(1);
         }
     }
@@ -44,6 +64,7 @@ public class Client {
         return true;
     }
 
+    
     private boolean register() {
         Scanner scanner = new Scanner(System.in);
         while (!isConnected) {
@@ -51,17 +72,22 @@ public class Client {
             this.nickName = scanner.nextLine();
 
             try {
-                out.writeObject(new RegistrationClientMessage(nickName));
-                ResultMessage response = (ResultMessage) in.readObject();
+                /*out.writeObject(new RegistrationClientMessage(nickName));
+                ResultMessage response = (ResultMessage) in.readObject();*/
 
-                if (response.getContent().equals(String.valueOf(Protocol.CONNECTION_SUCCESS))) {
+                // Регистрируем клиента на сервере через RMI
+             // ClientInterface clientInterface = new ClientHandler(); // создание реализации ClientInterface
+                //boolean success = server.registerClient(nickName, clientInterface);
+                
+                
+                if (server.registerClient(nickName, clientInterface)) {
                     System.out.println("You have successfully connected to the chat!");
                     isConnected = true;
-                } else if (response.getContent().equals(String.valueOf(Protocol.CONNECTION_FAILURE))) {
+                } else /*if (response.getContent().equals(String.valueOf(Protocol.CONNECTION_FAILURE)))*/ {
                     System.out.println("This nickname is already taken. Please try another one.");
                 }
 
-            } catch (IOException | ClassNotFoundException e) {
+            } catch (RemoteException e/*IOException | ClassNotFoundException e*/) {
                 System.out.println("Registration error.");
                 return false;
             }
@@ -74,10 +100,18 @@ public class Client {
         public void run() {
             while (true) {
                 try {
-                    AbstractServerMessage serverMessage = (AbstractServerMessage) in.readObject();
-
+                	
+                	AbstractServerMessage serverMessage = server.receiveMessage(); // получаем сообщение от сервера
+                    System.out.println(serverMessage.getContent());
                     if (serverMessage instanceof ResultMessage) {
                         resultQueue.offer((ResultMessage) serverMessage);
+                    } else {
+                        System.out.print("\r" + serverMessage.getContent() + "\nEnter message: ");
+                    }
+                  /*  AbstractServerMessage serverMessage = (AbstractServerMessage) in.readObject();
+
+                    if (serverMessage instanceof ResultMessage) {
+                        resultQueue.((ResultMessage) serverMessage);
                     } else {
                         System.out.print("\r" + serverMessage.getContent() + "\nEnter message: ");
                     }
@@ -85,15 +119,15 @@ public class Client {
                     System.err.println("Error reading object! Disconnet Server!");
                     try {
                         socket.close();
-                    } catch (IOException ex) {
+                    }*/}
+                    catch (IOException ex) {
                         throw new RuntimeException(ex);
                     }
                     System.exit(1);
                 }
             }
         }
-    }
-
+    
     private class OutgoingMessageHandler implements Runnable {
         private final Scanner scanner = new Scanner(System.in);
 
@@ -104,7 +138,18 @@ public class Client {
 
                 ChatClientMessage chatMessage = new ChatClientMessage(messageText, nickName);
                 try {
-                    out.writeObject(chatMessage);
+                	 // Отправляем сообщение на сервер через удаленный метод
+                    server.sendMessage(chatMessage, nickName);
+                    // Ожидаем результат отправки
+                      try {
+                        ResultMessage result = resultQueue.take();  // Ожидаем результат
+                        if (!result.getContent().equals(String.valueOf(Protocol.SENDING_MESSAGE_SUCCESS))) {
+                            System.out.println("Message sending error.");
+                        }}
+                        catch ( InterruptedException  e) {
+                            System.err.println("Error sending message! Disconnect Server!");
+                        }
+                    /*out.writeObject(chatMessage);
 
                     ResultMessage result = resultQueue.take();
                     if (!result.getContent().equals(String.valueOf(Protocol.SENDING_MESSAGE_SUCCESS))) {
@@ -121,7 +166,8 @@ public class Client {
                     System.err.println("Error waiting for result! Disconnect Server!");
                     try {
                         socket.close();
-                    } catch (IOException ex) {
+                     */}
+                    catch (RemoteException e /*IOException ex*/) {
                     }
                     System.exit(1);
                 }
@@ -129,4 +175,5 @@ public class Client {
             }
         }
     }
-}
+
+

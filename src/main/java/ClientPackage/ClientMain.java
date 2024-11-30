@@ -1,5 +1,8 @@
 package ClientPackage;
 
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
+
 public class ClientMain {
     public static void main(String[] args) {
         String serverIp = "localhost";
@@ -15,7 +18,7 @@ public class ClientMain {
                 System.err.println("Invalid port number. Using default port 8071.");
             }
         }
-
+        try {
         Client client = new Client(serverIp, port);
         boolean isConnected = client.start();
 
@@ -24,5 +27,11 @@ public class ClientMain {
         } else {
             System.err.println("Failed to connect to server at " + serverIp + " : " + port);
         }
+        
+        } catch (NotBoundException e) {
+            // Обрабатываем ошибку, если сервер не зарегистрирован
+            System.err.println("Server not found in the registry at " + serverIp + ":" + port);
+            e.printStackTrace();
+        } 
     }
 }

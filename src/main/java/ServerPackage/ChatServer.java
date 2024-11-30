@@ -90,7 +90,7 @@ public class ChatServer implements Runnable, MessageSender {
         }
     }
 
-    private static class ClientHandler extends Thread {
+    private static class ClientHandler extends Thread  {
         private Socket sock;
         private ObjectInputStream in;
         private ObjectOutputStream out;
