@@ -10,12 +10,11 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
 
-public class ChatServer implements  MessageSender, Runnable {
+public class ChatServer implements MessageSender, Runnable {
     private final String SERVER_NAME;
     private final int SERVER_PORT;
     private Registry registry;
     private Map<String, MessageVisualiser> clients;
-
 
     public ChatServer(String serverName, int port){
         SERVER_NAME = serverName;
@@ -56,7 +55,7 @@ public class ChatServer implements  MessageSender, Runnable {
                     clients.get(client).visualiseMessage(sender, message);
                 }
                 catch(RemoteException e){
-                    toRemove.add(sender);
+                    toRemove.add(client);
                 }
             }
         }
@@ -74,6 +73,7 @@ public class ChatServer implements  MessageSender, Runnable {
                     MessageVisualiser client = (MessageVisualiser) registry.lookup(nick);
                     clients.put(nick, client);
                     System.err.println(nick + " has been registered!");
+                    sendChatMessage("Server", nick + " has joined the chat");
                     return true;
                 }
                 catch (NotBoundException | RemoteException e) {

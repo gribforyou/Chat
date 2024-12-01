@@ -1,6 +1,5 @@
 package ClientPackage;
 
-
 import ServerPackage.MessageSender;
 
 import java.rmi.AlreadyBoundException;
@@ -11,6 +10,8 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.Scanner;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class Client implements MessageVisualiser, Runnable {
     private final String SERVER_NAME;
@@ -56,31 +57,29 @@ public class Client implements MessageVisualiser, Runnable {
         }
     }
 
-    private void register() throws RemoteException{
-        System.out.println("Enter your nick:");
-        nickname = scanner.nextLine();
-        Remote stub = UnicastRemoteObject.exportObject(this, CLIENT_PORT);
-        try {
-            registry.bind(nickname, stub);
-        } catch (AlreadyBoundException e) {
-            throw new RuntimeException(e);
-        }
-
-        while (!server.registerNick(nickname)) {
-            System.out.println("This nick is already registered!");
+    private void register() throws RemoteException {
+        boolean isRegistered = false;
+        while (!isRegistered) {
             System.out.println("Enter your nick:");
             nickname = scanner.nextLine();
-            stub = UnicastRemoteObject.exportObject(this, CLIENT_PORT);
+            Remote stub = UnicastRemoteObject.exportObject(this, CLIENT_PORT);
             try {
                 registry.bind(nickname, stub);
+                isRegistered = server.registerNick(nickname);
             } catch (AlreadyBoundException e) {
-                throw new RuntimeException(e);
+                System.out.println("This nick is already registered! Please enter a new nick:");
             }
         }
+        System.out.println("You have been registered successfully!");
+       // System.out.println("Enter message:");
     }
 
     @Override
     public void visualiseMessage(String sender, String message) throws RemoteException {
-        System.out.println(sender + ": " + message);
+        String currentDate = new SimpleDateFormat("dd/MM/yyyy").format(new Date());
+        String currentTime = new SimpleDateFormat("HH:mm:ss").format(new Date());
+
+        System.out.println("[" + currentDate + " " + currentTime + "] " + sender + ": " + message);
+      //  System.out.println("Enter message:");
     }
 }
