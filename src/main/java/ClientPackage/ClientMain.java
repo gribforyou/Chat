@@ -1,10 +1,11 @@
 package ClientPackage;
 
+import java.net.UnknownHostException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 
 public class ClientMain {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws UnknownHostException {
     	  if (args.length < 4) {
               System.err.println("Usage: java ClientMain <serverName> <serverIp> <serverPort> <clientPort>");
               System.exit(1);

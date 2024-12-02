@@ -63,14 +63,15 @@ public class ChatServer implements MessageSender, Runnable {
     }
 
     @Override
-    public boolean registerNick(String nick){
+    public boolean registerNick(String nick, String clientIP, int clientPort){
         synchronized (clients) {
             if (clients.containsKey(nick)) {
                 return false;
             }
             else {
                 try{
-                    MessageVisualiser client = (MessageVisualiser) registry.lookup(nick);
+                    Registry tempRegistry = LocateRegistry.getRegistry(clientIP, clientPort);
+                    MessageVisualiser client = (MessageVisualiser) tempRegistry.lookup(nick);
                     clients.put(nick, client);
                     System.err.println(nick + " has been registered!");
                     sendChatMessage("Server", nick + " has joined the chat");
