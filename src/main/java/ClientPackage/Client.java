@@ -3,7 +3,6 @@ package ClientPackage;
 import ServerPackage.MessageSender;
 
 import java.rmi.AlreadyBoundException;
-import java.rmi.NotBoundException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -71,7 +70,6 @@ public class Client implements MessageVisualiser, Runnable {
             }
         }
         System.out.println("You have been registered successfully!");
-       // System.out.println("Enter message:");
     }
 
     @Override
@@ -80,6 +78,5 @@ public class Client implements MessageVisualiser, Runnable {
         String currentTime = new SimpleDateFormat("HH:mm:ss").format(new Date());
 
         System.out.println("[" + currentDate + " " + currentTime + "] " + sender + ": " + message);
-      //  System.out.println("Enter message:");
     }
 }

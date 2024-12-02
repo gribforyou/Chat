@@ -86,9 +86,9 @@ public class ChatServer implements MessageSender, Runnable {
 
     public void disconnectClients(Collection<String> toRemove) {
         for (var client : toRemove) {
-            sendChatMessage("Server", client + " disconnected");
             clients.remove(client);
             System.err.println(client + " has been disconnected!");
+            sendChatMessage("Server", client + " disconnected");
         }
     }
 }
