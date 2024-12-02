@@ -5,24 +5,17 @@ import java.rmi.RemoteException;
 
 public class ClientMain {
     public static void main(String[] args) {
-    	 if (args.length != 3) {
-             System.err.println("Usage: java ClientMain <serverAddress> <serverPort> <clientPort>");
-             System.exit(1);
-         }
-    	  String serverAddress = args[0];
-          int serverPort;
-          int clientPort;
-          
-          try {
-              serverPort = Integer.parseInt(args[1]);
-              clientPort = Integer.parseInt(args[2]);
-          } catch (NumberFormatException e) {
-              System.err.println("Ports must be valid integers.");
+    	  if (args.length < 4) {
+              System.err.println("Usage: java ClientMain <serverName> <serverIp> <serverPort> <clientPort>");
               System.exit(1);
-              return; 
           }
 
-          Client client = new Client(serverAddress, serverPort, clientPort);
+        	  String serverName = args[0];
+              String serverIp = args[1];
+              int serverPort = Integer.parseInt(args[2]);
+              int clientPort = Integer.parseInt(args[3]);
+
+          Client client = new Client(serverName, serverIp, serverPort, clientPort);
          
         client.run();
     }

@@ -15,18 +15,20 @@ import java.util.Date;
 public class Client implements MessageVisualiser, Runnable {
     private final String SERVER_NAME;
     private final int SERVER_PORT;
+    private final String SERVER_IP;
     private final int CLIENT_PORT;
     private Registry registry;
     private final Scanner scanner = new Scanner(System.in);
     private MessageSender server;
     private String nickname;
 
-    public Client(String serverName, int serverPort, int clientPort) {
+    public Client(String serverName, String serverIp, int serverPort, int clientPort) {
         this.SERVER_NAME = serverName;
+        this.SERVER_IP = serverIp;
         this.SERVER_PORT = serverPort;
         this.CLIENT_PORT = clientPort;
         try {
-            registry = LocateRegistry.getRegistry(SERVER_PORT);
+            registry = LocateRegistry.getRegistry(SERVER_IP, SERVER_PORT);
             server = (MessageSender) registry.lookup(SERVER_NAME);
         }
         catch (Exception e) {
